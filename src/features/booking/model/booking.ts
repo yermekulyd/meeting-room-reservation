@@ -16,14 +16,34 @@ export type Booking = {
 export type BookingDraft = Omit<Booking, "id">;
 
 export type BookingValidationError =
+  | "invalid_date"
   | "invalid_time"
   | "invalid_interval"
   | "outside_workday"
   | "duration_too_short"
   | "duration_too_long"
+  | "date_in_past"
+  | "time_in_past"
   | "overlap";
 
+export type BookingValidationOptions = {
+  today: string;
+  currentMinutes: number;
+  bookingIdToIgnore?: string;
+};
+
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isBookingDate(value: string): boolean {
+  if (!DATE_PATTERN.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00Z`);
+
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+}
 
 function timeToMinutes(time: string): number | null {
   const match = TIME_PATTERN.exec(time);
@@ -38,8 +58,12 @@ function timeToMinutes(time: string): number | null {
 export function validateBookingDraft(
   draft: BookingDraft,
   bookings: readonly Booking[],
-  bookingIdToIgnore?: string,
+  options: BookingValidationOptions,
 ): BookingValidationError[] {
+  if (!isBookingDate(draft.date)) {
+    return ["invalid_date"];
+  }
+
   const start = timeToMinutes(draft.start);
   const end = timeToMinutes(draft.end);
 
@@ -68,8 +92,20 @@ export function validateBookingDraft(
     errors.push("duration_too_long");
   }
 
+  if (draft.date < options.today) {
+    errors.push("date_in_past");
+  } else if (
+    draft.date === options.today &&
+    start < options.currentMinutes
+  ) {
+    errors.push("time_in_past");
+  }
+
   const overlaps = bookings.some((booking) => {
-    if (booking.id === bookingIdToIgnore || booking.date !== draft.date) {
+    if (
+      booking.id === options.bookingIdToIgnore ||
+      booking.date !== draft.date
+    ) {
       return false;
     }
 

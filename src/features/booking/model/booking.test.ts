@@ -20,51 +20,119 @@ const existingBooking: Booking = {
   end: "12:00",
 };
 
+const validationOptions = {
+  today: "2026-10-25",
+  currentMinutes: 9 * 60 + 30,
+};
+
 describe("validateBookingDraft", () => {
   it("accepts a valid booking and allows touching boundaries", () => {
-    expect(validateBookingDraft(draft, [existingBooking])).toEqual([]);
+    expect(
+      validateBookingDraft(draft, [existingBooking], validationOptions),
+    ).toEqual([]);
+  });
+
+  it("rejects malformed dates", () => {
+    expect(
+      validateBookingDraft(
+        { ...draft, date: "2026-02-30" },
+        [],
+        validationOptions,
+      ),
+    ).toEqual(["invalid_date"]);
   });
 
   it("rejects malformed time values", () => {
     expect(
-      validateBookingDraft({ ...draft, start: "9:00" }, []),
+      validateBookingDraft(
+        { ...draft, start: "9:00" },
+        [],
+        validationOptions,
+      ),
     ).toEqual(["invalid_time"]);
   });
 
   it("requires the start to be earlier than the end", () => {
     expect(
-      validateBookingDraft({ ...draft, start: "11:00", end: "11:00" }, []),
+      validateBookingDraft(
+        { ...draft, start: "11:00", end: "11:00" },
+        [],
+        validationOptions,
+      ),
     ).toEqual(["invalid_interval"]);
   });
 
   it("keeps bookings within the working day", () => {
     expect(
-      validateBookingDraft({ ...draft, start: "08:30", end: "09:30" }, []),
+      validateBookingDraft(
+        { ...draft, start: "08:30", end: "09:30" },
+        [],
+        validationOptions,
+      ),
     ).toContain("outside_workday");
     expect(
-      validateBookingDraft({ ...draft, start: "17:30", end: "18:30" }, []),
+      validateBookingDraft(
+        { ...draft, start: "17:30", end: "18:30" },
+        [],
+        validationOptions,
+      ),
     ).toContain("outside_workday");
   });
 
   it("enforces minimum and maximum duration", () => {
     expect(
-      validateBookingDraft({ ...draft, start: "10:00", end: "10:29" }, []),
+      validateBookingDraft(
+        { ...draft, start: "10:00", end: "10:29" },
+        [],
+        validationOptions,
+      ),
     ).toContain("duration_too_short");
     expect(
-      validateBookingDraft({ ...draft, start: "10:00", end: "12:01" }, []),
+      validateBookingDraft(
+        { ...draft, start: "10:00", end: "12:01" },
+        [],
+        validationOptions,
+      ),
     ).toContain("duration_too_long");
+  });
+
+  it("rejects past dates and past start times for today", () => {
+    expect(
+      validateBookingDraft(
+        { ...draft, date: "2026-10-24" },
+        [],
+        validationOptions,
+      ),
+    ).toContain("date_in_past");
+    expect(
+      validateBookingDraft(
+        {
+          ...draft,
+          date: validationOptions.today,
+          start: "09:00",
+          end: "10:00",
+        },
+        [],
+        validationOptions,
+      ),
+    ).toContain("time_in_past");
   });
 
   it("detects overlap only for the selected date", () => {
     const overlappingDraft = { ...draft, start: "11:30", end: "12:30" };
 
-    expect(validateBookingDraft(overlappingDraft, [existingBooking])).toContain(
-      "overlap",
-    );
+    expect(
+      validateBookingDraft(
+        overlappingDraft,
+        [existingBooking],
+        validationOptions,
+      ),
+    ).toContain("overlap");
     expect(
       validateBookingDraft(
         { ...overlappingDraft, date: "2026-10-27" },
         [existingBooking],
+        validationOptions,
       ),
     ).not.toContain("overlap");
   });
@@ -77,7 +145,10 @@ describe("validateBookingDraft", () => {
     };
 
     expect(
-      validateBookingDraft(editedDraft, [existingBooking], existingBooking.id),
+      validateBookingDraft(editedDraft, [existingBooking], {
+        ...validationOptions,
+        bookingIdToIgnore: existingBooking.id,
+      }),
     ).toEqual([]);
   });
 });
