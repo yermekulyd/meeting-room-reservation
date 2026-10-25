@@ -143,7 +143,7 @@ export function BookingPage({ timeZone }: BookingPageProps) {
                   handleDateChange(event.target.value);
                 }
               }}
-              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 sm:w-48"
+              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             />
           </div>
         </header>
@@ -172,7 +172,8 @@ export function BookingPage({ timeZone }: BookingPageProps) {
                   id="schedule-title"
                   className="text-xl font-semibold tracking-tight text-slate-950"
                 >
-                  Бронирования на день
+                  <span className="sm:hidden text-lg">Бронирование</span>
+                  <span className="hidden sm:inline">Бронирования на день</span>
                 </h2>
               </div>
               <div className="flex items-center gap-2">
