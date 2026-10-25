@@ -126,7 +126,7 @@ export function BookingPage({ timeZone }: BookingPageProps) {
             </p>
           </div>
 
-          <div className="w-full sm:w-auto">
+          <div className="w-full min-w-0 sm:w-auto">
             <label
               htmlFor="booking-date"
               className="mb-2 block text-sm font-medium text-slate-700"
@@ -143,7 +143,7 @@ export function BookingPage({ timeZone }: BookingPageProps) {
                   handleDateChange(event.target.value);
                 }
               }}
-              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              className="h-12 w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             />
           </div>
         </header>
