@@ -24,6 +24,9 @@ export function BookingList({
   if (loading && bookings.length === 0) {
     return (
       <div aria-label="Загрузка бронирований" className="space-y-3">
+        <p className="sr-only" role="status">
+          Загружаем бронирования…
+        </p>
         {[0, 1, 2].map((item) => (
           <div
             key={item}
@@ -99,6 +102,7 @@ export function BookingList({
             <div className="ml-auto flex items-center gap-2">
               <button
                 type="button"
+                aria-label={`Изменить бронирование «${booking.title || "Без названия"}»`}
                 disabled={deletingId === booking.id}
                 onClick={() => onEdit(booking)}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -107,6 +111,7 @@ export function BookingList({
               </button>
               <button
                 type="button"
+                aria-label={`Удалить бронирование «${booking.title || "Без названия"}»`}
                 disabled={deletingId === booking.id}
                 onClick={() => onDelete(booking)}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-50"

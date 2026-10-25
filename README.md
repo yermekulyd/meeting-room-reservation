@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meeting Room Reservation
 
-## Getting Started
+Интерфейс бронирования одной переговорной комнаты в течение рабочего дня. Проект реализован на Next.js с mock API, серверной бизнес-валидацией и адаптивным интерфейсом.
 
-First, run the development server:
+## Возможности
+
+- выбор даты и просмотр расписания;
+- создание, редактирование и удаление бронирований;
+- клиентская предварительная и обязательная серверная валидация;
+- обработка серверного конфликта `409` без потери данных формы;
+- состояния загрузки, фонового обновления, ошибки и пустого списка;
+- локальное время комнаты в явно заданной IANA timezone;
+- адаптивная вёрстка и базовая доступность с клавиатуры.
+
+## Стек
+
+- Next.js 16, App Router и Route Handlers;
+- React 19;
+- TypeScript;
+- Tailwind CSS 4;
+- Vitest.
+
+Дополнительный state-менеджер и библиотека форм не используются: приложение работает с одним списком и одной формой, поэтому локального состояния и собственного `useBookings` достаточно.
+
+## Запуск
+
+Требуется Node.js 20+ и pnpm.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Приложение будет доступно по адресу [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Конфигурация
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+ROOM_TIME_ZONE=Asia/Almaty
+```
 
-## Learn More
+`ROOM_TIME_ZONE` задаёт локальное время переговорной. Сервер самостоятельно вычисляет текущую дату и время в этой зоне и не доверяет времени, переданному клиентом.
 
-To learn more about Next.js, take a look at the following resources:
+## Команды
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm dev        # development server
+pnpm test       # unit и API integration tests
+pnpm lint       # ESLint
+pnpm typecheck  # TypeScript
+pnpm check      # test + lint + typecheck
+pnpm build      # production build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Архитектура
 
-## Deploy on Vercel
+Основная функциональность собрана внутри одной доменной фичи:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+src/
+  app/
+    api/bookings/          # тонкие HTTP Route Handlers
+    page.tsx               # точка композиции страницы
+  features/booking/
+    api/                   # API client, mock service и HTTP helpers
+    config/                # timezone комнаты
+    model/                 # типы, бизнес-правила и useBookings
+    ui/                    # страница, форма и список
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+UI не обращается к in-memory store напрямую. Клиент работает только через HTTP API, поэтому mock-слой можно заменить реальным сервером без изменения компонентов.
+
+## API
+
+| Метод | Маршрут | Назначение |
+| --- | --- | --- |
+| `GET` | `/api/bookings?date=YYYY-MM-DD` | Получить бронирования за дату |
+| `POST` | `/api/bookings` | Создать бронирование |
+| `PATCH` | `/api/bookings/:id` | Изменить бронирование |
+| `DELETE` | `/api/bookings/:id` | Удалить бронирование |
+
+Ошибки API имеют единый JSON-формат. Пересечение с существующей бронью возвращает `409`, остальные нарушения бизнес-правил — `422`.
+
+При `409` интерфейс:
+
+1. сохраняет значения формы;
+2. показывает понятное сообщение;
+3. повторно загружает расписание;
+4. позволяет скорректировать время и отправить форму снова.
+
+## Бизнес-правила
+
+- рабочий день: 09:00–18:00;
+- начало раньше окончания;
+- длительность от 30 минут до 2 часов;
+- бронирования не пересекаются;
+- касание границ разрешено;
+- прошедшие даты и интервалы недоступны;
+- при редактировании бронь не конфликтует сама с собой.
+
+Правила находятся в чистой функции `validateBookingDraft` и повторно применяются на сервере. Текущий момент передаётся в валидатор явно, поэтому проверки детерминированно тестируются.
+
+## Тестирование
+
+Тестами покрыты:
+
+- формат даты и времени;
+- рабочие границы и длительность;
+- прошедшие интервалы и timezone;
+- пересечения и касание границ;
+- исключение текущей брони при редактировании;
+- CRUD mock-сервиса;
+- HTTP-контракт и ответ `409`;
+- клиентский API и сетевые ошибки.
+
+Основной пользовательский сценарий create → edit → delete дополнительно проверен вручную в desktop и mobile layouts.
+
+## Ограничения mock-хранилища
+
+API использует in-memory store. Это подходит для локальной разработки и проверки задания, но не является постоянным хранилищем.
+
+В serverless-окружении, включая Vercel, данные могут сбрасываться при перезапуске инстанса и различаться между параллельными инстансами. При этом HTTP-контракт, серверная валидация и обработка конфликтов остаются полноценными.
+
+Для production-версии store можно заменить базой данных внутри `booking-service`, не меняя UI и сетевой контракт.
+
+## Осознанно не реализовано
+
+- авторизация и разграничение доступа;
+- постоянная база данных;
+- интеграции и уведомления;
+- сложная календарная сетка — для одной комнаты выбран более простой список дня.
+
+## Затраченное время
+
+Финальное время будет указано после завершающей проверки и деплоя.

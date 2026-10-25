@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { ApiError } from "../api/bookings-api";
 import {
@@ -98,6 +98,7 @@ export function BookingForm({
   onCancelEdit,
   onConflict,
 }: BookingFormProps) {
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const [values, setValues] = useState<FormValues>(() =>
     getInitialValues(date, timeZone, editingBooking),
   );
@@ -109,6 +110,12 @@ export function BookingForm({
     date < validationOptions.today ||
     (date === validationOptions.today &&
       validationOptions.currentMinutes > 17 * 60 + 30);
+
+  useEffect(() => {
+    if (editingBooking) {
+      titleInputRef.current?.focus();
+    }
+  }, [editingBooking]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -183,6 +190,7 @@ export function BookingForm({
         <p className="mt-2 text-sm leading-6 text-slate-500">
           Рабочее время: {BOOKING_RULES.workdayStart}–
           {BOOKING_RULES.workdayEnd}. Продолжительность от 30 минут до 2 часов.
+          Часовой пояс: {timeZone}.
         </p>
       </div>
 
@@ -202,6 +210,7 @@ export function BookingForm({
             Название встречи
           </label>
           <input
+            ref={titleInputRef}
             id="booking-title"
             name="title"
             type="text"
@@ -235,6 +244,8 @@ export function BookingForm({
               max={BOOKING_RULES.workdayEnd}
               step={1800}
               required
+              aria-invalid={Boolean(formError)}
+              aria-errormessage={formError ? "booking-form-error" : undefined}
               value={values.start}
               disabled={controlsDisabled}
               onChange={(event) =>
@@ -262,6 +273,8 @@ export function BookingForm({
               max={BOOKING_RULES.workdayEnd}
               step={1800}
               required
+              aria-invalid={Boolean(formError)}
+              aria-errormessage={formError ? "booking-form-error" : undefined}
               value={values.end}
               disabled={controlsDisabled}
               onChange={(event) =>
@@ -278,6 +291,7 @@ export function BookingForm({
         <div aria-live="polite">
           {formError && (
             <p
+              id="booking-form-error"
               role="alert"
               className="rounded-xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-700"
             >

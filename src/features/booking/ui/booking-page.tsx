@@ -140,6 +140,7 @@ export function BookingPage({ timeZone }: BookingPageProps) {
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
           <section
             aria-labelledby="schedule-title"
+            aria-busy={loading}
             className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
           >
             <div className="mb-6 flex items-center justify-between gap-4">
@@ -154,9 +155,26 @@ export function BookingPage({ timeZone }: BookingPageProps) {
                   Бронирования на день
                 </h2>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600">
-                {bookings.length}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  aria-label={`Бронирований: ${bookings.length}`}
+                  className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600"
+                >
+                  {bookings.length}
+                </span>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setNotice(null);
+                    setOperationError(null);
+                    void reload();
+                  }}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-wait disabled:text-slate-400"
+                >
+                  {loading ? "Обновляем…" : "Обновить"}
+                </button>
+              </div>
             </div>
 
             <BookingList
