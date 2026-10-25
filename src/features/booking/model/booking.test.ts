@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   type Booking,
   type BookingDraft,
+  getBookingEndTimeOptions,
+  getBookingStartTimeOptions,
   getBookingValidationOptions,
   validateBookingDraft,
 } from "./booking";
@@ -27,6 +29,21 @@ const validationOptions = {
 };
 
 describe("validateBookingDraft", () => {
+  it("builds 30-minute start and duration-aware end time options", () => {
+    expect(getBookingStartTimeOptions()).toEqual(
+      expect.arrayContaining(["09:00", "12:30", "17:30"]),
+    );
+    expect(getBookingStartTimeOptions()).not.toContain("18:00");
+    expect(getBookingEndTimeOptions("16:30")).toEqual([
+      { value: "17:00", durationMinutes: 30 },
+      { value: "17:30", durationMinutes: 60 },
+      { value: "18:00", durationMinutes: 90 },
+    ]);
+    expect(getBookingEndTimeOptions("17:30")).toEqual([
+      { value: "18:00", durationMinutes: 30 },
+    ]);
+  });
+
   it("creates deterministic validation options in the room time zone", () => {
     const now = new Date("2026-10-25T20:30:00.000Z");
 

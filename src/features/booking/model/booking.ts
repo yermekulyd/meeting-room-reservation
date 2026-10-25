@@ -79,7 +79,7 @@ export function formatDateInTimeZone(date: Date, timeZone: string): string {
   return getBookingValidationOptions(date, timeZone).today;
 }
 
-function timeToMinutes(time: string): number | null {
+export function timeToMinutes(time: string): number | null {
   const match = TIME_PATTERN.exec(time);
 
   if (!match) {
@@ -87,6 +87,55 @@ function timeToMinutes(time: string): number | null {
   }
 
   return Number(match[1]) * 60 + Number(match[2]);
+}
+
+export function minutesToTime(minutes: number): string {
+  const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
+  const restMinutes = String(minutes % 60).padStart(2, "0");
+
+  return `${hours}:${restMinutes}`;
+}
+
+export function getBookingStartTimeOptions(): string[] {
+  const workdayStart = timeToMinutes(BOOKING_RULES.workdayStart)!;
+  const workdayEnd = timeToMinutes(BOOKING_RULES.workdayEnd)!;
+  const options: string[] = [];
+
+  for (
+    let minutes = workdayStart;
+    minutes <= workdayEnd - BOOKING_RULES.minDurationMinutes;
+    minutes += 30
+  ) {
+    options.push(minutesToTime(minutes));
+  }
+
+  return options;
+}
+
+export function getBookingEndTimeOptions(
+  startTime: string,
+): Array<{ value: string; durationMinutes: number }> {
+  const start = timeToMinutes(startTime);
+  const workdayEnd = timeToMinutes(BOOKING_RULES.workdayEnd)!;
+
+  if (start === null) {
+    return [];
+  }
+
+  const options: Array<{ value: string; durationMinutes: number }> = [];
+
+  for (
+    let duration = BOOKING_RULES.minDurationMinutes;
+    duration <= BOOKING_RULES.maxDurationMinutes && start + duration <= workdayEnd;
+    duration += 30
+  ) {
+    options.push({
+      value: minutesToTime(start + duration),
+      durationMinutes: duration,
+    });
+  }
+
+  return options;
 }
 
 export function validateBookingDraft(

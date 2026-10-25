@@ -8,7 +8,11 @@ import {
   type Booking,
   type BookingDraft,
   type BookingValidationError,
+  getBookingEndTimeOptions,
+  getBookingStartTimeOptions,
   getBookingValidationOptions,
+  minutesToTime,
+  timeToMinutes,
   validateBookingDraft,
 } from "../model/booking";
 
@@ -42,12 +46,37 @@ const validationMessages: Record<BookingValidationError, string> = {
   overlap: "Выбранное время пересекается с существующей бронью.",
 };
 
-function minutesToTime(minutes: number): string {
-  const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
-  const restMinutes = String(minutes % 60).padStart(2, "0");
+function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} мин.`;
+  }
 
-  return `${hours}:${restMinutes}`;
+  const hours = Math.floor(minutes / 60);
+  const restMinutes = minutes % 60;
+
+  return restMinutes > 0
+    ? `${hours} ч. ${restMinutes} мин.`
+    : `${hours} ч.`;
 }
+
+function SelectChevron() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-slate-500 peer-disabled:text-slate-400"
+    >
+      <path d="m7 10 5 5 5-5" />
+    </svg>
+  );
+}
+
+const startTimeOptions = getBookingStartTimeOptions();
 
 function getInitialValues(
   date: string,
@@ -171,6 +200,30 @@ export function BookingForm({
   };
 
   const controlsDisabled = disabled || submitting || creationUnavailable;
+  const endTimeOptions = getBookingEndTimeOptions(values.start);
+
+  const handleStartChange = (start: string) => {
+    setFormError(null);
+    setValues((current) => {
+      const currentStart = timeToMinutes(current.start);
+      const currentEnd = timeToMinutes(current.end);
+      const options = getBookingEndTimeOptions(start);
+      const currentDuration =
+        currentStart !== null && currentEnd !== null
+          ? currentEnd - currentStart
+          : null;
+      const nextEnd =
+        options.find((option) => option.durationMinutes === currentDuration) ??
+        options.find((option) => option.durationMinutes === 60) ??
+        options[0];
+
+      return {
+        ...current,
+        start,
+        end: nextEnd?.value ?? current.end,
+      };
+    });
+  };
 
   return (
     <section
@@ -236,26 +289,26 @@ export function BookingForm({
             >
               Начало
             </label>
-            <input
-              id="booking-start"
-              name="start"
-              type="time"
-              min={BOOKING_RULES.workdayStart}
-              max={BOOKING_RULES.workdayEnd}
-              step={1800}
-              required
-              aria-invalid={Boolean(formError)}
-              aria-errormessage={formError ? "booking-form-error" : undefined}
-              value={values.start}
-              disabled={controlsDisabled}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  start: event.target.value,
-                }))
-              }
-              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-            />
+            <div className="relative">
+              <select
+                id="booking-start"
+                name="start"
+                required
+                aria-invalid={Boolean(formError)}
+                aria-errormessage={formError ? "booking-form-error" : undefined}
+                value={values.start}
+                disabled={controlsDisabled}
+                onChange={(event) => handleStartChange(event.target.value)}
+                className="peer h-14 w-full cursor-pointer appearance-none rounded-xl border border-slate-300 bg-white px-3 pr-10 text-base text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 sm:h-12 sm:text-sm"
+              >
+                {startTimeOptions.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
           </div>
 
           <div>
@@ -265,26 +318,44 @@ export function BookingForm({
             >
               Окончание
             </label>
-            <input
-              id="booking-end"
-              name="end"
-              type="time"
-              min={BOOKING_RULES.workdayStart}
-              max={BOOKING_RULES.workdayEnd}
-              step={1800}
-              required
-              aria-invalid={Boolean(formError)}
-              aria-errormessage={formError ? "booking-form-error" : undefined}
-              value={values.end}
-              disabled={controlsDisabled}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  end: event.target.value,
-                }))
-              }
-              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-            />
+            <div className="relative">
+              <select
+                id="booking-end"
+                name="end"
+                required
+                aria-invalid={Boolean(formError)}
+                aria-errormessage={formError ? "booking-form-error" : undefined}
+                value={values.end}
+                disabled={controlsDisabled}
+                onChange={(event) =>
+                  setValues((current) => ({
+                    ...current,
+                    end: event.target.value,
+                  }))
+                }
+                className="peer h-14 w-full cursor-pointer appearance-none rounded-xl border border-slate-300 bg-white px-3 pr-10 text-base text-transparent outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 sm:h-12 sm:text-sm"
+              >
+                <option className="text-slate-950" value={values.start} disabled>
+                  {values.start} · 0 мин.
+                </option>
+                {endTimeOptions.map((option) => (
+                  <option
+                    className="text-slate-950"
+                    key={option.value}
+                    value={option.value}
+                  >
+                    {option.value} · {formatDuration(option.durationMinutes)}
+                  </option>
+                ))}
+              </select>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-base text-slate-950 peer-disabled:text-slate-400 sm:text-sm"
+              >
+                {values.end}
+              </span>
+              <SelectChevron />
+            </div>
           </div>
         </div>
 
@@ -306,7 +377,7 @@ export function BookingForm({
               type="button"
               disabled={submitting}
               onClick={onCancelEdit}
-              className="flex h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-14 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-base font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-12 sm:text-sm"
             >
               Отмена
             </button>
@@ -314,7 +385,7 @@ export function BookingForm({
           <button
             type="submit"
             disabled={controlsDisabled}
-            className="flex h-12 flex-1 items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="flex min-h-14 flex-1 items-center justify-center rounded-xl bg-blue-600 px-5 text-base font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 sm:min-h-12 sm:text-sm"
           >
             {submitting
               ? "Сохраняем…"
