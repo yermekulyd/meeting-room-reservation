@@ -377,7 +377,7 @@ export function BookingForm({
               type="button"
               disabled={submitting}
               onClick={onCancelEdit}
-              className="flex min-h-14 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-base font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-12 sm:text-sm"
+              className="flex min-h-14 flex-1 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-base font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-12 sm:text-sm"
             >
               Отмена
             </button>
@@ -385,7 +385,7 @@ export function BookingForm({
           <button
             type="submit"
             disabled={controlsDisabled}
-            className="flex min-h-14 flex-1 items-center justify-center rounded-xl bg-blue-600 px-5 text-base font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 sm:min-h-12 sm:text-sm"
+            className="flex min-h-14 flex-1 cursor-pointer items-center justify-center rounded-xl bg-blue-600 px-5 text-base font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300 sm:min-h-12 sm:text-sm"
           >
             {submitting
               ? "Сохраняем…"
