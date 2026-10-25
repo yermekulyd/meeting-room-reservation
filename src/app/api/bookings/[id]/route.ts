@@ -6,6 +6,7 @@ import {
   parseBookingPatch,
   readRequestBody,
 } from "@/features/booking/api";
+import { getRoomTimeZone } from "@/features/booking/config/booking-config";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -22,7 +23,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const result = bookingService.update(
     id,
     patch,
-    getBookingValidationOptions(),
+    getBookingValidationOptions(new Date(), getRoomTimeZone()),
   );
 
   if (!result.ok) {

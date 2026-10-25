@@ -9,6 +9,7 @@ import {
   parseBookingDraft,
   readRequestBody,
 } from "@/features/booking/api";
+import { getRoomTimeZone } from "@/features/booking/config/booking-config";
 
 export function GET(request: Request) {
   const date = new URL(request.url).searchParams.get("date");
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
 
   const result = bookingService.create(
     draft,
-    getBookingValidationOptions(),
+    getBookingValidationOptions(new Date(), getRoomTimeZone()),
   );
 
   if (!result.ok) {

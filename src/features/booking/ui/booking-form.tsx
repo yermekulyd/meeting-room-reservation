@@ -8,16 +8,19 @@ import {
   type Booking,
   type BookingDraft,
   type BookingValidationError,
-  formatLocalDate,
   getBookingValidationOptions,
   validateBookingDraft,
 } from "../model/booking";
 
 type BookingFormProps = {
   date: string;
+  timeZone: string;
   bookings: readonly Booking[];
+  editingBooking?: Booking;
   disabled: boolean;
-  onCreate: (draft: BookingDraft) => Promise<Booking>;
+  onSave: (draft: BookingDraft) => Promise<Booking>;
+  onSaved: (booking: Booking) => void;
+  onCancelEdit: () => void;
   onConflict: () => Promise<void>;
 };
 
@@ -46,12 +49,27 @@ function minutesToTime(minutes: number): string {
   return `${hours}:${restMinutes}`;
 }
 
-function getInitialValues(date: string, now = new Date()): FormValues {
-  if (date !== formatLocalDate(now)) {
+function getInitialValues(
+  date: string,
+  timeZone: string,
+  editingBooking?: Booking,
+  now = new Date(),
+): FormValues {
+  if (editingBooking) {
+    return {
+      start: editingBooking.start,
+      end: editingBooking.end,
+      title: editingBooking.title ?? "",
+    };
+  }
+
+  const validationOptions = getBookingValidationOptions(now, timeZone);
+
+  if (date !== validationOptions.today) {
     return { start: "09:00", end: "10:00", title: "" };
   }
 
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes = validationOptions.currentMinutes;
   const roundedStart = Math.ceil((currentMinutes + 1) / 30) * 30;
   const workdayStart = 9 * 60;
   const workdayEnd = 18 * 60;
@@ -71,19 +89,22 @@ function getInitialValues(date: string, now = new Date()): FormValues {
 
 export function BookingForm({
   date,
+  timeZone,
   bookings,
+  editingBooking,
   disabled,
-  onCreate,
+  onSave,
+  onSaved,
+  onCancelEdit,
   onConflict,
 }: BookingFormProps) {
   const [values, setValues] = useState<FormValues>(() =>
-    getInitialValues(date),
+    getInitialValues(date, timeZone, editingBooking),
   );
   const [formError, setFormError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const now = new Date();
-  const validationOptions = getBookingValidationOptions(now);
+  const validationOptions = getBookingValidationOptions(now, timeZone);
   const creationUnavailable =
     date < validationOptions.today ||
     (date === validationOptions.today &&
@@ -92,7 +113,6 @@ export function BookingForm({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
-    setSuccessMessage(null);
 
     const draft: BookingDraft = {
       date,
@@ -103,7 +123,10 @@ export function BookingForm({
     const validationErrors = validateBookingDraft(
       draft,
       bookings,
-      getBookingValidationOptions(),
+      {
+        ...getBookingValidationOptions(new Date(), timeZone),
+        bookingIdToIgnore: editingBooking?.id,
+      },
     );
 
     if (validationErrors.length > 0) {
@@ -114,9 +137,13 @@ export function BookingForm({
     setSubmitting(true);
 
     try {
-      await onCreate(draft);
-      setValues(getInitialValues(date));
-      setSuccessMessage("Бронирование создано.");
+      const booking = await onSave(draft);
+
+      if (!editingBooking) {
+        setValues(getInitialValues(date, timeZone));
+      }
+
+      onSaved(booking);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setFormError(
@@ -145,13 +172,13 @@ export function BookingForm({
     >
       <div className="mb-6">
         <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-blue-600 uppercase">
-          Новая встреча
+          {editingBooking ? "Редактирование" : "Новая встреча"}
         </p>
         <h2
           id="booking-form-title"
           className="text-xl font-semibold tracking-tight text-slate-950"
         >
-          Забронировать комнату
+          {editingBooking ? "Изменить бронирование" : "Забронировать комнату"}
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">
           Рабочее время: {BOOKING_RULES.workdayStart}–
@@ -257,20 +284,31 @@ export function BookingForm({
               {formError}
             </p>
           )}
-          {successMessage && (
-            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm leading-5 text-emerald-700">
-              {successMessage}
-            </p>
-          )}
         </div>
 
-        <button
-          type="submit"
-          disabled={controlsDisabled}
-          className="flex h-12 w-full items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300"
-        >
-          {submitting ? "Сохраняем…" : "Забронировать"}
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {editingBooking && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={onCancelEdit}
+              className="flex h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Отмена
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={controlsDisabled}
+            className="flex h-12 flex-1 items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {submitting
+              ? "Сохраняем…"
+              : editingBooking
+                ? "Сохранить"
+                : "Забронировать"}
+          </button>
+        </div>
       </form>
     </section>
   );

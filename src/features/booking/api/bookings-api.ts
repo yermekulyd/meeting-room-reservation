@@ -68,7 +68,10 @@ async function request<T>(
     );
   }
 
-  const body: unknown = await response.json().catch(() => null);
+  const body: unknown =
+    response.status === 204
+      ? undefined
+      : await response.json().catch(() => null);
 
   if (!response.ok) {
     const details = readErrorDetails(body);
@@ -93,6 +96,19 @@ export const bookingsApi = {
     return request("/api/bookings", {
       method: "POST",
       body: JSON.stringify(draft),
+    });
+  },
+
+  update(id: string, draft: BookingDraft): Promise<Booking> {
+    return request(`/api/bookings/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(draft),
+    });
+  },
+
+  remove(id: string): Promise<void> {
+    return request(`/api/bookings/${encodeURIComponent(id)}`, {
+      method: "DELETE",
     });
   },
 };

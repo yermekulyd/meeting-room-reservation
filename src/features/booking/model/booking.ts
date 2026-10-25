@@ -45,21 +45,38 @@ export function isBookingDate(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
 }
 
-export function formatLocalDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+export function getBookingValidationOptions(
+  now: Date,
+  timeZone: string,
+): BookingValidationOptions {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const getPart = (type: "year" | "month" | "day" | "hour" | "minute") => {
+    const part = parts.find((item) => item.type === type);
 
-  return `${year}-${month}-${day}`;
+    if (!part) {
+      throw new Error(`Unable to format booking time part: ${type}`);
+    }
+
+    return part.value;
+  };
+
+  return {
+    today: `${getPart("year")}-${getPart("month")}-${getPart("day")}`,
+    currentMinutes:
+      Number(getPart("hour")) * 60 + Number(getPart("minute")),
+  };
 }
 
-export function getBookingValidationOptions(
-  now = new Date(),
-): BookingValidationOptions {
-  return {
-    today: formatLocalDate(now),
-    currentMinutes: now.getHours() * 60 + now.getMinutes(),
-  };
+export function formatDateInTimeZone(date: Date, timeZone: string): string {
+  return getBookingValidationOptions(date, timeZone).today;
 }
 
 function timeToMinutes(time: string): number | null {

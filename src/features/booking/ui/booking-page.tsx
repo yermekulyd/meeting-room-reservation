@@ -2,17 +2,92 @@
 
 import { useState } from "react";
 
-import { formatLocalDate } from "../model/booking";
+import {
+  type Booking,
+  type BookingDraft,
+  formatDateInTimeZone,
+} from "../model/booking";
 import { useBookings } from "../model/use-bookings";
 import { BookingForm } from "./booking-form";
 import { BookingList } from "./booking-list";
 
-export function BookingPage() {
+type BookingPageProps = {
+  timeZone: string;
+};
+
+export function BookingPage({ timeZone }: BookingPageProps) {
   const [selectedDate, setSelectedDate] = useState(() =>
-    formatLocalDate(new Date()),
+    formatDateInTimeZone(new Date(), timeZone),
   );
-  const { bookings, loading, error, reload, createBooking } =
-    useBookings(selectedDate);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const {
+    bookings,
+    loading,
+    error,
+    reload,
+    createBooking,
+    updateBooking,
+    deleteBooking,
+  } = useBookings(selectedDate);
+
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
+    setEditingBooking(null);
+    setNotice(null);
+    setOperationError(null);
+  };
+
+  const handleEdit = (booking: Booking) => {
+    setEditingBooking({ ...booking });
+    setNotice(null);
+    setOperationError(null);
+  };
+
+  const handleDelete = async (booking: Booking) => {
+    const title = booking.title || "Встреча без названия";
+
+    if (!window.confirm(`Удалить бронирование «${title}»?`)) {
+      return;
+    }
+
+    setDeletingId(booking.id);
+    setNotice(null);
+    setOperationError(null);
+
+    try {
+      await deleteBooking(booking.id);
+
+      if (editingBooking?.id === booking.id) {
+        setEditingBooking(null);
+      }
+
+      setNotice("Бронирование удалено.");
+    } catch (deleteError) {
+      setOperationError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Не удалось удалить бронирование.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleSave = (draft: BookingDraft) =>
+    editingBooking
+      ? updateBooking(editingBooking.id, draft)
+      : createBooking(draft);
+
+  const handleSaved = () => {
+    setNotice(
+      editingBooking ? "Бронирование обновлено." : "Бронирование создано.",
+    );
+    setEditingBooking(null);
+    setOperationError(null);
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 sm:py-12">
@@ -45,13 +120,22 @@ export function BookingPage() {
               value={selectedDate}
               onChange={(event) => {
                 if (event.target.value) {
-                  setSelectedDate(event.target.value);
+                  handleDateChange(event.target.value);
                 }
               }}
               className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 sm:w-48"
             />
           </div>
         </header>
+
+        {notice && (
+          <p
+            role="status"
+            className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          >
+            {notice}
+          </p>
+        )}
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
           <section
@@ -79,17 +163,27 @@ export function BookingPage() {
               date={selectedDate}
               bookings={bookings}
               loading={loading}
-              errorMessage={error?.message}
-              onRetry={() => void reload()}
+              errorMessage={operationError ?? error?.message}
+              deletingId={deletingId ?? undefined}
+              onRetry={() => {
+                setOperationError(null);
+                void reload();
+              }}
+              onEdit={handleEdit}
+              onDelete={(booking) => void handleDelete(booking)}
             />
           </section>
 
           <BookingForm
-            key={selectedDate}
+            key={`${selectedDate}:${editingBooking?.id ?? "create"}`}
             date={selectedDate}
+            timeZone={timeZone}
             bookings={bookings}
+            editingBooking={editingBooking ?? undefined}
             disabled={Boolean(error) || (loading && bookings.length === 0)}
-            onCreate={createBooking}
+            onSave={handleSave}
+            onSaved={handleSaved}
+            onCancelEdit={() => setEditingBooking(null)}
             onConflict={reload}
           />
         </div>

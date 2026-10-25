@@ -92,6 +92,23 @@ export function useBookings(date: string) {
     [reload],
   );
 
+  const updateBooking = useCallback(
+    async (id: string, draft: BookingDraft) => {
+      const booking = await bookingsApi.update(id, draft);
+      await reload();
+      return booking;
+    },
+    [reload],
+  );
+
+  const deleteBooking = useCallback(
+    async (id: string) => {
+      await bookingsApi.remove(id);
+      await reload();
+    },
+    [reload],
+  );
+
   const isCurrentDate = state.date === date;
 
   return {
@@ -100,5 +117,7 @@ export function useBookings(date: string) {
     error: isCurrentDate ? state.error : null,
     reload,
     createBooking,
+    updateBooking,
+    deleteBooking,
   };
 }

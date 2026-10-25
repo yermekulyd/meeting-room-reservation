@@ -1,8 +1,11 @@
 import { Suspense } from "react";
 
 import { BookingPage } from "@/features/booking";
+import { getRoomTimeZone } from "@/features/booking/config/booking-config";
 
 export default function Home() {
+  const timeZone = getRoomTimeZone();
+
   return (
     <Suspense
       fallback={
@@ -13,7 +16,7 @@ export default function Home() {
         </main>
       }
     >
-      <BookingPage />
+      <BookingPage timeZone={timeZone} />
     </Suspense>
   );
 }

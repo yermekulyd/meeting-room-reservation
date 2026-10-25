@@ -27,12 +27,12 @@ const validationOptions = {
 };
 
 describe("validateBookingDraft", () => {
-  it("creates deterministic validation options from local date parts", () => {
-    const now = new Date(2026, 9, 25, 14, 45);
+  it("creates deterministic validation options in the room time zone", () => {
+    const now = new Date("2026-10-25T20:30:00.000Z");
 
-    expect(getBookingValidationOptions(now)).toEqual({
-      today: "2026-10-25",
-      currentMinutes: 14 * 60 + 45,
+    expect(getBookingValidationOptions(now, "Asia/Almaty")).toEqual({
+      today: "2026-10-26",
+      currentMinutes: 90,
     });
   });
 

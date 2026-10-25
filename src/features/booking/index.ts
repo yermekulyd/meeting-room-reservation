@@ -4,7 +4,7 @@ export {
   type BookingDraft,
   type BookingValidationError,
   type BookingValidationOptions,
-  formatLocalDate,
+  formatDateInTimeZone,
   getBookingValidationOptions,
   isBookingDate,
   validateBookingDraft,

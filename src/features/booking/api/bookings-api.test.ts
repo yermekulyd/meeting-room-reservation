@@ -58,4 +58,34 @@ describe("bookingsApi", () => {
       issues: ["overlap"],
     });
   });
+
+  it("updates and deletes a booking through its resource URL", async () => {
+    const updatedBooking = {
+      id: "booking/1",
+      date: "2026-10-26",
+      start: "11:00",
+      end: "12:00",
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json(updatedBooking))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      bookingsApi.update(updatedBooking.id, updatedBooking),
+    ).resolves.toEqual(updatedBooking);
+    await expect(bookingsApi.remove(updatedBooking.id)).resolves.toBeUndefined();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/bookings/booking%2F1",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/bookings/booking%2F1",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
 });

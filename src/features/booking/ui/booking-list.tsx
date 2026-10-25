@@ -5,7 +5,10 @@ type BookingListProps = {
   bookings: readonly Booking[];
   loading: boolean;
   errorMessage?: string;
+  deletingId?: string;
   onRetry: () => void;
+  onEdit: (booking: Booking) => void;
+  onDelete: (booking: Booking) => void;
 };
 
 export function BookingList({
@@ -13,7 +16,10 @@ export function BookingList({
   bookings,
   loading,
   errorMessage,
+  deletingId,
   onRetry,
+  onEdit,
+  onDelete,
 }: BookingListProps) {
   if (loading && bookings.length === 0) {
     return (
@@ -75,7 +81,7 @@ export function BookingList({
         {bookings.map((booking) => (
           <li
             key={booking.id}
-            className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="flex flex-wrap items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
           >
             <div className="min-w-24 rounded-xl bg-blue-50 px-3 py-2 text-center text-sm font-semibold text-blue-700">
               <time dateTime={`${date}T${booking.start}`}>
@@ -84,11 +90,29 @@ export function BookingList({
               <span aria-hidden="true">–</span>
               <time dateTime={`${date}T${booking.end}`}>{booking.end}</time>
             </div>
-            <div className="min-w-0 pt-1">
+            <div className="min-w-0 flex-1 pt-1">
               <p className="truncate font-medium text-slate-950">
                 {booking.title || "Встреча без названия"}
               </p>
               <p className="mt-1 text-sm text-slate-500">Переговорная комната</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                disabled={deletingId === booking.id}
+                onClick={() => onEdit(booking)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Изменить
+              </button>
+              <button
+                type="button"
+                disabled={deletingId === booking.id}
+                onClick={() => onDelete(booking)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deletingId === booking.id ? "Удаляем…" : "Удалить"}
+              </button>
             </div>
           </li>
         ))}
