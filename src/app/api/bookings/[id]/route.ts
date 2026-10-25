@@ -1,7 +1,7 @@
+import { getBookingValidationOptions } from "@/features/booking";
 import {
   bookingService,
   bookingServiceErrorResponse,
-  getBookingValidationOptions,
   invalidRequestResponse,
   parseBookingPatch,
   readRequestBody,

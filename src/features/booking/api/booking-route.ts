@@ -1,7 +1,4 @@
-import type {
-  BookingDraft,
-  BookingValidationOptions,
-} from "../model/booking";
+import type { BookingDraft } from "../model/booking";
 import type { BookingServiceError } from "./booking-service";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -57,19 +54,6 @@ export function parseBookingPatch(
   }
 
   return Object.keys(patch).length > 0 ? patch : null;
-}
-
-export function getBookingValidationOptions(
-  now = new Date(),
-): BookingValidationOptions {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-
-  return {
-    today: `${year}-${month}-${day}`,
-    currentMinutes: now.getHours() * 60 + now.getMinutes(),
-  };
 }
 
 export function bookingServiceErrorResponse(

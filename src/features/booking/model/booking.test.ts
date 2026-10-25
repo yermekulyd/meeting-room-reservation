@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   type Booking,
   type BookingDraft,
+  getBookingValidationOptions,
   validateBookingDraft,
 } from "./booking";
 
@@ -26,6 +27,15 @@ const validationOptions = {
 };
 
 describe("validateBookingDraft", () => {
+  it("creates deterministic validation options from local date parts", () => {
+    const now = new Date(2026, 9, 25, 14, 45);
+
+    expect(getBookingValidationOptions(now)).toEqual({
+      today: "2026-10-25",
+      currentMinutes: 14 * 60 + 45,
+    });
+  });
+
   it("accepts a valid booking and allows touching boundaries", () => {
     expect(
       validateBookingDraft(draft, [existingBooking], validationOptions),

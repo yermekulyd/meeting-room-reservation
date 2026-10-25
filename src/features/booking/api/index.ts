@@ -2,7 +2,6 @@ import { createBookingService } from "./booking-service";
 
 export {
   bookingServiceErrorResponse,
-  getBookingValidationOptions,
   invalidRequestResponse,
   parseBookingDraft,
   parseBookingPatch,

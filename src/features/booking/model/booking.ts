@@ -45,6 +45,23 @@ export function isBookingDate(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
 }
 
+export function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+export function getBookingValidationOptions(
+  now = new Date(),
+): BookingValidationOptions {
+  return {
+    today: formatLocalDate(now),
+    currentMinutes: now.getHours() * 60 + now.getMinutes(),
+  };
+}
+
 function timeToMinutes(time: string): number | null {
   const match = TIME_PATTERN.exec(time);
 
