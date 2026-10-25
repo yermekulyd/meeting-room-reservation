@@ -15,12 +15,15 @@ type BookingPageProps = {
   timeZone: string;
 };
 
+const MANUAL_REFRESH_MIN_DURATION_MS = 700;
+
 export function BookingPage({ timeZone }: BookingPageProps) {
   const [selectedDate, setSelectedDate] = useState(() =>
     formatDateInTimeZone(new Date(), timeZone),
   );
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
   const {
@@ -89,6 +92,23 @@ export function BookingPage({ timeZone }: BookingPageProps) {
     setOperationError(null);
   };
 
+  const handleManualRefresh = async () => {
+    setNotice(null);
+    setOperationError(null);
+    setManualRefreshing(true);
+
+    await Promise.all([
+      reload(),
+      new Promise<void>((resolve) =>
+        window.setTimeout(resolve, MANUAL_REFRESH_MIN_DURATION_MS),
+      ),
+    ]);
+
+    setManualRefreshing(false);
+  };
+
+  const scheduleLoading = loading || manualRefreshing;
+
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto max-w-6xl">
@@ -140,7 +160,7 @@ export function BookingPage({ timeZone }: BookingPageProps) {
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
           <section
             aria-labelledby="schedule-title"
-            aria-busy={loading}
+            aria-busy={scheduleLoading}
             className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
           >
             <div className="mb-6 flex items-center justify-between gap-4">
@@ -164,15 +184,11 @@ export function BookingPage({ timeZone }: BookingPageProps) {
                 </span>
                 <button
                   type="button"
-                  disabled={loading}
-                  onClick={() => {
-                    setNotice(null);
-                    setOperationError(null);
-                    void reload();
-                  }}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-wait disabled:text-slate-400"
+                  disabled={scheduleLoading}
+                  onClick={() => void handleManualRefresh()}
+                  className="min-w-24 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-wait disabled:text-slate-400"
                 >
-                  {loading ? "Обновляем…" : "Обновить"}
+                  {scheduleLoading ? "Обновляем…" : "Обновить"}
                 </button>
               </div>
             </div>
@@ -180,7 +196,7 @@ export function BookingPage({ timeZone }: BookingPageProps) {
             <BookingList
               date={selectedDate}
               bookings={bookings}
-              loading={loading}
+              loading={scheduleLoading}
               errorMessage={operationError ?? error?.message}
               deletingId={deletingId ?? undefined}
               onRetry={() => {
@@ -198,7 +214,9 @@ export function BookingPage({ timeZone }: BookingPageProps) {
             timeZone={timeZone}
             bookings={bookings}
             editingBooking={editingBooking ?? undefined}
-            disabled={Boolean(error) || (loading && bookings.length === 0)}
+            disabled={
+              Boolean(error) || (scheduleLoading && bookings.length === 0)
+            }
             onSave={handleSave}
             onSaved={handleSaved}
             onCancelEdit={() => setEditingBooking(null)}

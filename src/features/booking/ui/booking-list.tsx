@@ -23,16 +23,17 @@ export function BookingList({
 }: BookingListProps) {
   if (loading && bookings.length === 0) {
     return (
-      <div aria-label="Загрузка бронирований" className="space-y-3">
-        <p className="sr-only" role="status">
-          Загружаем бронирования…
+      <div
+        aria-label="Загрузка бронирований"
+        className="flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-blue-200 bg-blue-50/50 px-6 text-center"
+      >
+        <span
+          aria-hidden="true"
+          className="size-6 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600"
+        />
+        <p className="mt-3 text-sm font-medium text-blue-700" role="status">
+          Обновляем расписание…
         </p>
-        {[0, 1, 2].map((item) => (
-          <div
-            key={item}
-            className="h-24 animate-pulse rounded-2xl bg-slate-100"
-          />
-        ))}
       </div>
     );
   }
@@ -56,7 +57,7 @@ export function BookingList({
 
   if (!loading && bookings.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+      <div className="flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center">
         <p className="text-base font-medium text-slate-800">Бронирований нет</p>
         <p className="mt-2 text-sm text-slate-500">
           На выбранную дату переговорная пока свободна.
@@ -66,17 +67,19 @@ export function BookingList({
   }
 
   return (
-    <div className="space-y-3">
-      {(loading || errorMessage) && (
+    <div>
+      {loading && !errorMessage && (
+        <p role="status" className="sr-only">
+          Обновляем расписание…
+        </p>
+      )}
+
+      {errorMessage && (
         <p
-          role={errorMessage ? "alert" : "status"}
-          className={`rounded-xl px-4 py-3 text-sm ${
-            errorMessage
-              ? "bg-red-50 text-red-700"
-              : "bg-blue-50 text-blue-700"
-          }`}
+          role="alert"
+          className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"
         >
-          {errorMessage ?? "Обновляем расписание…"}
+          {errorMessage}
         </p>
       )}
 
